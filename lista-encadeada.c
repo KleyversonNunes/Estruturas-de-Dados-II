@@ -1,28 +1,43 @@
-#include <stdlib.h>
+/*
+    Aluno: Kleyverson Nunes da Silva
+    Matrícula: 202311140004
+    Atividade: Implementação de grafo na forma de lista encadeada
+*/
+
 #include <stdio.h>
+#include <stdlib.h>
 
-// Definindo as estruturas
-//typedef int TipoChave;
+// Definindo as estruturas do grafo
+#define MAXNUMVERTICES 100
+#define MAXNUMARESTAS 4500
+#define TRUE 1
+#define FALSE 0
 
-typedef struct
+typedef int TipoValorVertice;
+typedef int TipoPeso;
+typedef struct TipoItem
 {
-    int Valor;
+    TipoValorVertice Vertice;
+    TipoPeso Peso;
 }TipoItem;
-
 typedef struct TipoCelula *TipoApontador;
-
-typedef struct TipoCelula
+struct TipoCelula
 {
     TipoItem Item;
     TipoApontador Prox;
 }TipoCelula;
-
-typedef struct
+typedef struct TipoLista
 {
     TipoApontador Primeiro, Ultimo;
 }TipoLista;
+typedef struct TipoGrafo
+{
+    TipoLista Adj[MAXNUMVERTICES + 1];
+    TipoValorVertice NumVertices;
+    short NumArestas;
+}TipoGrafo;
 
-// Definindo as operações da lista
+// Implementando os métodos sobre lista
 void FLVazia(TipoLista *Lista)
 {
     Lista->Primeiro = (TipoApontador)malloc(sizeof(TipoCelula));
@@ -43,6 +58,53 @@ void Insere(TipoItem x, TipoLista *Lista)
     Lista->Ultimo->Prox = NULL;
 }
 
+// Implementando os métodos sobre grafo
+void FGVazio(TipoGrafo *Grafo)
+{
+    long i;
+    for(i = 0; i < Grafo->NumVertices; i++) FLVazia(&Grafo->Adj[i]);
+}
+
+void InsereAresta(TipoValorVertice *V1, TipoValorVertice *V2, TipoPeso *Peso, TipoGrafo *Grafo)
+{
+    TipoItem x;
+    x.Vertice = *V2;
+    x.Peso = *Peso;
+    Insere(x,&Grafo->Adj[*V1]);
+}
+
+short ExisteAresta(TipoValorVertice Vertice1, TipoValorVertice Vertice2, TipoGrafo *Grafo)
+{
+    TipoApontador Aux;
+    short EncontrouAresta = FALSE;
+    Aux = Grafo->Adj[Vertice1].Primeiro->Prox;
+    while(Aux != NULL && EncontrouAresta == FALSE)
+    {
+        if(Vertice2 == Aux->Item.Vertice) EncontrouAresta = TRUE;
+        Aux = Aux->Prox;
+    }
+}
+
+// Métodos para obter listas de adjacentes
+short ListaAdjVazia(TipoValorVertice *Vertice, TipoGrafo *Grafo)
+{
+    return (Grafo->Adj[*Vertice].Primeiro == Grafo->Adj[*Vertice].Ultimo);
+}
+
+TipoApontador PrimeiroListaAdj(TipoValorVertice *Vertice, TipoGrafo *Grafo)
+{
+    return (Grafo->Adj[*Vertice].Primeiro->Prox);
+}
+
+void ProxAdj(TipoValorVertice *Vertice, TipoGrafo *Grafo, TipoValorVertice *Adj, TipoPeso *Peso, TipoApontador *Prox, short *FimListaAdj)
+{
+    *Adj = (*Prox)->Item.Vertice;
+    *Peso = (*Prox)->Item.Peso;
+    *Prox = (*Prox)->Prox;
+    if(*Prox == NULL) *FimListaAdj = TRUE;
+}
+
+// Método para retirar da lista
 void Retira(TipoApontador p, TipoLista *Lista, TipoItem *Item)
 {
     TipoApontador q;
@@ -58,69 +120,66 @@ void Retira(TipoApontador p, TipoLista *Lista, TipoItem *Item)
     free(q);
 }
 
-void Imprime(TipoLista Lista)
+// Mais métodos sobre grafos
+void RetiraAresta(TipoValorVertice *V1, TipoValorVertice *V2, TipoPeso *Peso, TipoGrafo *Grafo)
 {
-    TipoApontador Aux;
-    Aux = Lista.Primeiro->Prox;
-    while(Aux != NULL)
+    TipoApontador AuxAnterior, Aux;
+    short EncontrouAresta = FALSE;
+    TipoItem x;
+    AuxAnterior = Grafo->Adj[*V1].Primeiro;
+    while(Aux != NULL && EncontrouAresta == FALSE)
     {
-        printf("%d ",Aux->Item.Valor);
+        if(*V2 == Aux->Item.Vertice)
+        {
+            Retira(AuxAnterior,&Grafo->Adj[*V1],&x);
+            Grafo->NumArestas--;
+            EncontrouAresta == TRUE;
+        }
+        AuxAnterior = Aux;
         Aux = Aux->Prox;
     }
 }
 
-// Utilizando as estruturas e as operações
+void LiberaGrafo(TipoGrafo *Grafo)
+{
+    TipoApontador AuxAnterior, Aux;
+    for(int i = 0;i < Grafo->NumVertices; i++)
+    {
+        Aux = Grafo->Adj[i].Primeiro->Prox;
+        free(Grafo->Adj[i].Primeiro);
+        Grafo->Adj[i].Primeiro = NULL;
+        while(Aux != NULL)
+        {
+            AuxAnterior = Aux;
+            Aux = Aux->Prox;
+            free(AuxAnterior);
+        }
+    }
+    Grafo->NumVertices = 0;
+}
+
+void ImprimeGrafo(TipoGrafo *Grafo)
+{
+    int i;
+    TipoApontador Aux;
+    for(i = 0; i < Grafo->NumVertices; i++)
+    {
+        printf("Vertice%2d: ",i);
+        if(!Vazia(Grafo->Adj[i]))
+        {
+            Aux = Grafo->Adj[i].Primeiro->Prox;
+            while(Aux != NULL)
+            {
+                printf("%3d (%d)",Aux->Item.Vertice, Aux->Item.Peso);
+                Aux = Aux->Prox;
+            }
+        }
+        putchar('\n');
+    }
+}
+
 int main()
 {
-    TipoLista Lista1;
-    FLVazia(&Lista1);
-    
-    // Verificando se a lista está vazia
-    printf("%d\n",Vazia(Lista1));
-
-    // Criando itens
-    TipoItem i1, i2, i3, i4, i5;
-    i1.Valor = 100;
-    i2.Valor = 200;
-    i3.Valor = 300;
-    i4.Valor = 400;
-    i5.Valor = 500;
-
-    // Criando células
-    /*
-    TipoCelula c1, c2, c3, c4, c5;
-    c1.Item = i1;
-    c2.Item = i2;
-    c3.Item = i3;
-    c4.Item = i4;
-    c5.Item = i5;
-    */
-
-    // Inserindo itens
-    Insere(i1,&Lista1);
-    Insere(i2,&Lista1);
-    Insere(i3,&Lista1);
-
-    // Exebindo a lista
-    Imprime(Lista1);
-    //printf("\n");
-
-    // Retirando itens
-    TipoApontador PontItem2 = Lista1.Primeiro->Prox->Prox;
-    //Retira(PontItem1,&Lista1,&i2); // Retirando i2
-    Retira(PontItem2,&Lista1,&i3); // Retirando i3
-
-    // Exibindo a lista
-    printf("\n");
-    Imprime(Lista1);
-
-    // Adicionando itens
-    Insere(i4,&Lista1);
-    Insere(i5,&Lista1);
-
-    // Exibindo a lista
-    printf("\n");
-    Imprime(Lista1);
-
+    printf("Isso aqui e o capeta!\n");
     return 0;
 }
